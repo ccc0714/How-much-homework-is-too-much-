@@ -11,8 +11,12 @@ Data for the 2023 TIMSS data can be found [here](https://timss2019.org/internati
 ## Code Scripts and Description 
 
 compare_country_proportions.R - Codes for comparing the proportions of responses for categorical variables across any 2 countries that are available in the TIMSS international database 
+
 TIMSS2019_NZ_analysis.R - Code from Nathan McJames study with slight modification to be more relevant in the New Zealand context
+
 TIMSS2023_data_cleaning.R - Code for cleaning the 2023 TIMSS data 
+
 VarianceCalculations.R - Code from [Nathan McJames study](https://github.com/Nathan-McJames/Homework-Paper/blob/main/VarianceCalculationsGitHub.R)
+
 HomeworkModel.cpp - Source code from [Nathan McJames study](https://github.com/Nathan-McJames/Homework-Paper/blob/main/HomeworkModelGitHub.cpp) which might requires some modification to increase the number of treatment variables 
 
