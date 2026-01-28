@@ -10,6 +10,25 @@ library(foreign)
 library(BART)
 library(survey)
 
+#Make sure to change the path to your Directory for storing the dataset 
+load_timss_country <- function(code, path = "YourDirectory") {
+  
+  code <- tolower(code)   # ensure filenames match pattern
+  
+  prefixes <- c("bcg", "bsg", "bst", "btm", "bts")
+  
+  data_list <- list()
+  
+  for (p in prefixes) {
+    file_path <- file.path(path, paste0(p, code, "m7.sav"))
+    object_name <- paste0(toupper(code), "_", toupper(p))
+    
+    data_list[[object_name]] <- as.data.frame(read.spss(file_path))
+  }
+  
+  return(data_list)
+}
+
 df.clean <- function(BCG, BSG, BST, BTM, BTS){
   
   BST_BTM<-merge(BST, BTM, by="IDTEALIN")
@@ -213,6 +232,16 @@ df.clean <- function(BCG, BSG, BST, BTM, BTS){
   return(XY)
 }
 
+df.clean.list <- function(data_list) {
+  BCG <- data_list[[grep("_BCG$", names(data_list))]]
+  BSG <- data_list[[grep("_BSG$", names(data_list))]]
+  BST <- data_list[[grep("_BST$", names(data_list))]]
+  BTM <- data_list[[grep("_BTM$", names(data_list))]]
+  BTS <- data_list[[grep("_BTS$", names(data_list))]]
+  
+  df.clean(BCG, BSG, BST, BTM, BTS)
+}
+
 math_paired <- function(XY){
   math_class_id_var <- "IDCLASS.x.x"
   math_freq_var <- list(student = "BSBM26AA", teacher = "BTBM19A")
@@ -285,61 +314,36 @@ sci_paired <- function(XY){
   return(sci_paired_data)
 }
 
-NZ_BCG<-as.data.frame(read.spss("2019Data/bcgnzlm7.sav"))
-NZ_BSG<-as.data.frame(read.spss("2019Data/bsgnzlm7.sav"))
-NZ_BST<-as.data.frame(read.spss("2019Data/bstnzlm7.sav"))
-NZ_BTM<-as.data.frame(read.spss("2019Data/btmnzlm7.sav"))
-NZ_BTS<-as.data.frame(read.spss("2019Data/btsnzlm7.sav"))
+#Make sure to change xxx and yyy to your target countries in iso3n format
+countries <- c("xxx", "yyy")
 
-IR_BCG<-as.data.frame(read.spss("2019Data/bcgirlm7.sav"))
-IR_BSG<-as.data.frame(read.spss("2019Data/bsgirlm7.sav"))
-IR_BST<-as.data.frame(read.spss("2019Data/bstirlm7.sav"))
-IR_BTM<-as.data.frame(read.spss("2019Data/btmirlm7.sav"))
-IR_BTS<-as.data.frame(read.spss("2019Data/btsirlm7.sav"))
+# Load files for both countries
+data_country1 <- load_timss_country(countries[1])
+data_country2 <- load_timss_country(countries[2])
 
-NZ_XY <- df.clean(NZ_BCG, NZ_BSG, NZ_BST, NZ_BTM, NZ_BTS)
-IR_XY <- df.clean(IR_BCG, IR_BSG, IR_BST, IR_BTM, IR_BTS)
+# Clean to create XY datasets
+XY1 <- df.clean.list(data_country1)
+XY2 <- df.clean.list(data_country2)
 
-math_paired_data_NZ <- math_paired(NZ_XY)
-math_paired_data_IR <- math_paired(IR_XY)
-sci_paired_data_NZ <- sci_paired(NZ_XY)
-sci_paired_data_IR <- sci_paired(IR_XY)
+math_paired_data_1 <- math_paired(XY1)
+math_paired_data_2 <- math_paired(XY2)
+sci_paired_data_1 <- sci_paired(XY1)
+sci_paired_data_2 <- sci_paired(XY2)
 
+#Feel free to change 1 and 2 to your designate countries 
 math_country <- bind_rows(
-  math_paired_data_NZ %>% mutate(country = "NZ"),
-  math_paired_data_IR %>% mutate(country = "IR")
+  math_paired_data_1 %>% mutate(country = "1"),
+  math_paired_data_2 %>% mutate(country = "2")
 )
 
 sci_country <- bind_rows(
-  sci_paired_data_NZ %>% mutate(country = "NZ"),
-  sci_paired_data_IR %>% mutate(country = "IR")
+  sci_paired_data_1 %>% mutate(country = "1"),
+  sci_paired_data_2 %>% mutate(country = "2")
 )
 
 summary(lm(diff_freq_M ~ country + N_Students_M, data = math_country))
 
 summary(lm(diff_freq_S ~ country + N_Students_S, data = sci_country))
 
-
-math_design <- svydesign(
-  ids = ~1,
-  weights = ~TOTWGT.x,
-  data = math_country
-)
-
-svyglm(
-  diff_freq_M ~ country + N_Students_M,
-  design = math_design
-)
-
-sci_design <- svydesign(
-  ids = ~1,
-  weights = ~TOTWGT.y,
-  data = sci_country
-)
-
-svyglm(
-  diff_freq_S ~ country + N_Students_S,
-  design = sci_design
-)
 
 
