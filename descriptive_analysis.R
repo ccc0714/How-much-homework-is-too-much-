@@ -16,11 +16,11 @@ set.seed(123)
 #Use one thread
 setDTthreads(1)
 
-BCG<-as.data.frame(read.spss("2019Data/bcgnzlm7.sav"))
-BSG<-as.data.frame(read.spss("2019Data/bsgnzlm7.sav"))
-BST<-as.data.frame(read.spss("2019Data/bstnzlm7.sav"))
-BTM<-as.data.frame(read.spss("2019Data/btmnzlm7.sav"))
-BTS<-as.data.frame(read.spss("2019Data/btsnzlm7.sav"))
+BCG<-as.data.frame(read.spss("/your_directory/bcgxxxm7.sav"))
+BSG<-as.data.frame(read.spss("/your_directory/bsgxxxm7.sav"))
+BST<-as.data.frame(read.spss("/your_directory/bstxxxm7.sav"))
+BTM<-as.data.frame(read.spss("/your_directory/btmxxxm7.sav"))
+BTS<-as.data.frame(read.spss("/your_directory/btsxxxm7.sav"))
 
 #Math Data
 BST_BTM<-merge(BST, BTM, by="IDTEALIN")
@@ -222,8 +222,8 @@ XYS<-mutate_at(XYS, c(1, 10:15, 26, 29:33, 35:37, 44:52, 57), mymap)
 
 XY<-merge(XYM, XYS, by="IDSTUD")
 
-#--------------------------------------------------------------------------------
-XY<-missRanger(XY, num.threads=6, num.trees=50, pmm.k = 3)
+#------Finding what variables are most important in explaining the trend of homework duration and frequency----------
+XY<-missRanger(XY, num.threads=6, num.trees=50, pmm.k = 3) #Imputing NA 
 
 importance <- function(data){
   
@@ -237,20 +237,20 @@ importance <- function(data){
     "BSDGEDUP.x", "BSBGHER.x", "BSBGSSB.x", "BSBGSB.x",
     "BSBG10.x", "BSBG11A.x", "BSBG11B.x", 
     
-    # --- Student Math Attitudes (No suffix, unique to XYM) ---
+    # --- Student Math Attitudes ---
     "BSBGICM",  # Instructional Clarity in Math
     "BSBGSCM",  # Self-Confidence in Math
-    "BSBGSVM",  # Value Math
+    "BSBGSVM",  # Value of Math
     
     # --- Math Teacher & Class (Math Source) ---
     "BTBG01.x", "BTBG02.x", "BTBG03.x", "BTBG10.x",
     "BTBGTJS.x", "BTBGSOS.x", "BTBGLSN.x", "BTBGEAS.x", 
-    "BTDMMME",  # Math Major/Ed (Unique to XYM)
-    "BTBM14",   # Homework emphasis (Unique to XYM)
+    "BTDMMME",  # Math Major/Ed 
+    "BTBM14",   # Homework emphasis 
     
     # --- School Level (Math Source) ---
     "BCBGDAS.x", "BCBGEAS.x", "BCDGSBC.x",
-    "BCBGMRS"   # Math Resource Shortage (Unique to XYM)
+    "BCBGMRS"   # Math Resource Shortage
   )
   
   # List for Science Homework Models (BSBS26AB, BSBS26BB)
@@ -263,7 +263,7 @@ importance <- function(data){
     "BSDGEDUP.y", "BSBGHER.y", "BSBGSSB.y", "BSBGSB.y",
     "BSBG10.y", "BSBG11A.y", "BSBG11B.y",
     
-    # --- Student Science Attitudes (No suffix, unique to XYS) ---
+    # --- Student Science Attitudes ---
     "BSBGICS",  # Instructional Clarity in Science
     "BSBGSCS",  # Self-Confidence in Science
     "BSBGSVS",  # Value Science
@@ -271,12 +271,12 @@ importance <- function(data){
     # --- Science Teacher & Class (Science Source) ---
     "BTBG01.y", "BTBG02.y", "BTBG03.y", "BTBG10.y",
     "BTBGTJS.y", "BTBGSOS.y", "BTBGLSN.y", "BTBGEAS.y",
-    "BTDSMSE",  # Science Major/Ed (Unique to XYS)
-    "BTBS14",   # Homework emphasis (Unique to XYS)
+    "BTDSMSE",  # Science Major/Ed
+    "BTBS14",   # Homework emphasis 
     
     # --- School Level (Science Source) ---
     "BCBGDAS.y", "BCBGEAS.y", "BCDGSBC.y",
-    "BCBGSRS"   # Science Resource Shortage (Unique to XYS)
+    "BCBGSRS"   # Science Resource Shortage 
   )
   
   bart_runs <- list(
@@ -315,7 +315,7 @@ importance <- function(data){
       Importance = top_15
     )
     
-    # Simple Plot
+    # bar plot for top 15 important variable 
     p <- ggplot(importance_df, aes(x = reorder(Variable, Importance), y = Importance)) +
       geom_col(fill = "steelblue") +
       coord_flip() +
@@ -329,12 +329,12 @@ importance <- function(data){
   return(list(importance_plots = importance_plots, df_list = df_list))
 }
 
-#nz_importance <- importance(XY)
-#nz_df <- nz_importance$df_list
-#nz_plot <- nz_importance$importance_plot
+nz_importance <- importance(XY)
+nz_df <- nz_importance$df_list
+nz_plot <- nz_importance$importance_plot
 
 
-#----------Student VS Teacher----------------------------------------
+#Finding the difference between student actual reported homework frequency and duration with teacher's expected hoemwork frequency and duration
 # 1. Variable Definitions
 math_class_id_var <- "IDCLASS.x.x"
 math_freq_var <- list(student = "BSBM26AA", teacher = "BTBM19A")
@@ -346,7 +346,7 @@ sci_freq_var <- list(student = "BSBS26AB", teacher = "BTBS18A")
 sci_duration_var <- list(student = "BSBS26BB", teacher = "BTBS18B")
 sci_weight_var <- "TOTWGT.y"
 
-# --- PART 1: MATH PAIRED COMPARISON ---
+# --- math student&teacher paired comparison ---
 
 # Student Summary (Math)
 math_student_summary <- XY %>%
@@ -378,8 +378,7 @@ math_paired_data_full <- math_student_summary %>%
   ) 
 
 
-# --------------------- PART 2: SCIENCE PAIRED COMPARISON ----------------
-# Note: Using XY again, assuming the science variables are appropriately linked in the data
+# --- science student&teacher paired comparison ---
 
 # Student Summary (Science)
 sci_student_summary <- XY %>%
@@ -410,11 +409,16 @@ sci_paired_data_full <- sci_student_summary %>%
     Subject = "Science"
   ) 
 
-mean_diff_math <- mean(math_paired_data_full$diff_freq_M, na.rm = TRUE)
-mean_diff_sci <- mean(sci_paired_data_full$diff_freq_S, na.rm = TRUE)
+math_freq_diff <- mean(math_paired_data_full$diff_freq_M, na.rm = TRUE)
+sci_freq_diff <- mean(sci_paired_data_full$diff_freq_S, na.rm = TRUE)
 
-mean_diff_math
-mean_diff_sci
+math_time_diff <- mean(math_paired_data_full$diff_time_M, na.rm = TRUE)
+sci_time_diff <- mean(sci_paired_data_full$diff_time_S, na.rm = TRUE)
+
+math_freq_diff
+sci_freq_diff
+math_time_diff
+sci_time_diff
 
 # --- PART 3: COMBINE AND RESHAPE DATA ---
 
@@ -439,8 +443,6 @@ combined_plot_data <- bind_rows(math_for_plot, sci_for_plot) %>%
     )
   )
 
-head(combined_plot_data)
-
 # --- Visualisation ---
 ggplot(combined_plot_data, aes(x = Subject, y = Difference, fill = Subject)) +
   geom_boxplot(outlier.shape = 21, outlier.fill = "red", alpha = 0.8) +
@@ -457,86 +459,3 @@ ggplot(combined_plot_data, aes(x = Subject, y = Difference, fill = Subject)) +
   ) +
   theme_minimal(base_size = 14) +
   theme(legend.position = "none")
-
-#------------------------------------------------------
-sci_XY <- XY %>% filter(BTBS15A == 1 & (BTBS19E == 2|BTBS19E == 1) )
-
-sci_student_summary <- sci_XY %>%
-  group_by(!!sym(science_class_id_var)) %>%
-  dplyr::summarize(
-    mean_hw_freq_S = weighted.mean(!!sym(sci_freq_var$student), !!sym(sci_weight_var), na.rm = TRUE),
-    .groups = 'drop'
-  )
-
-# Teacher Summary (Science)
-sci_teacher_summary <- sci_XY %>%
-  select(!!sym(science_class_id_var), Teacher_Freq_S = !!sym(sci_freq_var$teacher), Teacher_Time_S = !!sym(sci_duration_var$teacher)) %>%
-  group_by(!!sym(science_class_id_var)) %>%
-  dplyr::summarize(
-    Teacher_Freq_Mean_S = mean(Teacher_Freq_S, na.rm = TRUE),
-    N_Students_S = n(),
-    .groups = 'drop'
-  )
-
-# Paired Comparison (Science)
-sci_paired_data <- sci_student_summary %>%
-  inner_join(sci_teacher_summary, by = science_class_id_var) %>%
-  mutate(
-    diff_freq_S = Teacher_Freq_Mean_S - mean_hw_freq_S,
-    Subject = "Science"
-  ) %>% 
-  filter(N_Students_S >= 5)
-
-math_XY <- XY %>% filter(BTBM15A == 1 & (BTBM20E == 2|BTBM20E == 1))
-
-math_student_summary <- math_XY %>%
-  group_by(!!sym(math_class_id_var)) %>%
-  dplyr::summarize(
-    mean_hw_freq_M = weighted.mean(!!sym(math_freq_var$student), !!sym(math_weight_var), na.rm = TRUE),
-    .groups = 'drop'
-  )
-
-# Teacher Summary (Math)
-math_teacher_summary <- math_XY %>%
-  select(!!sym(math_class_id_var), Teacher_Freq_M = !!sym(math_freq_var$teacher)) %>%
-  group_by(!!sym(math_class_id_var)) %>%
-  dplyr::summarize(
-    Teacher_Freq_Mean_M = mean(Teacher_Freq_M, na.rm = TRUE),
-    N_Students_M = n(),
-    .groups = 'drop'
-  )
-
-# Paired Comparison (Math)
-math_paired_data <- math_student_summary %>%
-  inner_join(math_teacher_summary, by = math_class_id_var) %>%
-  mutate(
-    diff_freq_M = Teacher_Freq_Mean_M - mean_hw_freq_M,
-    Subject = "Math"
-  ) %>% 
-  filter(N_Students_M >= 5)
-
-
-mean_diff_math2 <- mean(math_paired_data$diff_freq_M, na.rm = TRUE)
-mean_diff_sci2 <- mean(sci_paired_data$diff_freq_S, na.rm = TRUE)
-
-mean_diff_math2
-mean_diff_sci2
-
-#---------Testing significance--------------------------
-math_all <- bind_rows(
-  math_paired_data_full %>% mutate(filtered = 0),
-  math_paired_data %>% mutate(filtered = 1)
-)
-
-summary(
-  lm(diff_freq_M ~ filtered + N_Students_M, data = math_all)
-)
-
-sci_all <- bind_rows(
-  sci_paired_data_full %>% mutate(filtered = 0),
-  sci_paired_data %>% mutate(filtered = 1)
-)
-
-summary(
-  lm(diff_freq_S ~ filtered + N_Students_S, data = sci_all)
-)
